@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import './App.css'
 
 const materiales = [
@@ -150,6 +150,79 @@ function GrupoCheckbox(props) {
   )
 }
 
+function FiltroContenidoAlfabetico(props) {
+  const refsPorLetra = useRef({})
+
+  function estaElegido(valor) {
+    return props.elegidos.includes(valor)
+  }
+  function toggle(valor) {
+    if (estaElegido(valor)) {
+      props.setElegidos(props.elegidos.filter(function (v) { return v !== valor }))
+    } else {
+      props.setElegidos([...props.elegidos, valor])
+    }
+  }
+
+  const grupos = {}
+  props.opciones.forEach(function (opcion) {
+    const letra = opcion[0].toUpperCase()
+    if (!grupos[letra]) grupos[letra] = []
+    grupos[letra].push(opcion)
+  })
+  const letras = Object.keys(grupos).sort()
+
+  function irALetra(letra) {
+    const el = refsPorLetra.current[letra]
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
+  return (
+    <div className="filtro-grupo">
+      <h3>Contenido</h3>
+      <div className="indice-alfabetico">
+        {letras.map(function (letra) {
+          return (
+            <button type="button" key={letra} onClick={function () { irALetra(letra) }}>
+              {letra}
+            </button>
+          )
+        })}
+      </div>
+      <div className="lista-scroll">
+        {letras.map(function (letra) {
+          return (
+            <div className="letra-grupo" key={letra}>
+              <span
+                className="letra-header"
+                ref={function (el) { refsPorLetra.current[letra] = el }}
+              >
+                {letra}
+              </span>
+              {grupos[letra].map(function (opcion) {
+                return (
+                  <label key={opcion}>
+                    <input
+                      type="checkbox"
+                      checked={estaElegido(opcion.toLowerCase())}
+                      onChange={function () { toggle(opcion.toLowerCase()) }}
+                    />
+                    {opcion}
+                  </label>
+                )
+              })}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// Combo con chips: buscar en una lista de opciones, o agregar un valor nuevo como "pendiente".
+// Tiene su PROPIO estado interno (elegidos, texto) -- cada vez que lo usás es independiente.
 function ComboEtiquetas(props) {
   const [elegidos, setElegidos] = useState([])
   const [texto, setTexto] = useState('')
@@ -331,8 +404,8 @@ function App() {
           </div>
           <a className="donar-btn" href="https://cafecito.app/recursero1" target="_blank" rel="noopener">☕ Invitame un cafecito</a>
           <a className="subir-btn" href="#" onClick={function (e) { e.preventDefault(); setVista('formulario') }}>
-  Subir material
-</a>
+            Subir material
+          </a>
         </div>
       </header>
 
@@ -362,12 +435,10 @@ function App() {
             })}
           </div>
 
-          <GrupoCheckbox
-            titulo="Contenido"
+          <FiltroContenidoAlfabetico
             opciones={opcionesContenido}
             elegidos={contenidosElegidos}
             setElegidos={setContenidosElegidos}
-            scroll={true}
           />
 
           <GrupoCheckbox
