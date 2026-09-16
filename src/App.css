@@ -1,0 +1,356 @@
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+  :root{
+    --paper: #F1F3EC;
+    --card: #FBFBF7;
+    --ink: #1F2A24;
+    --ink-soft: #4B564E;
+    --line: #D9D9CB;
+    --gold: #B4842A;
+    --pine: #2F6F62;
+    --pine-light: #E4EEEB;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin:0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+  }
+
+  h1, h2, h3, .serif { font-family: 'Source Serif 4', serif; }
+
+  /* ---------- header ---------- */
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 22px 40px;
+    border-bottom: 1px solid var(--line);
+    background: var(--paper);
+  }
+
+  .brand{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+  }
+  .brand h1{
+    font-size: 22px;
+    font-weight: 600;
+    margin:0;
+    letter-spacing: 0.2px;
+  }
+  .brand span{
+    font-size:13px;
+    color: var(--ink-soft);
+  }
+
+  .searchbar{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 9px 14px;
+    width: 340px;
+    transition: border-color 0.15s ease;
+  }
+  .searchbar:focus-within{ border-color: var(--pine); }
+  .searchbar input{
+    border:none;
+    background:transparent;
+    outline:none;
+    font-family: inherit;
+    font-size: 14px;
+    width:100%;
+    color: var(--ink);
+  }
+  .searchbar svg{ flex-shrink:0; opacity:0.55; }
+
+  .subir-btn{
+    background: var(--pine);
+    color: white;
+    border:none;
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor:pointer;
+    display: inline-block;
+    text-decoration: none;
+    transition: background 0.15s ease;
+  }
+  .subir-btn:hover{ background: #275c51; }
+
+  .donar-btn{
+    background: transparent;
+    color: var(--gold);
+    border: 1px solid var(--gold);
+    padding: 9px 16px;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor:pointer;
+    display: inline-block;
+    text-decoration: none;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .donar-btn:hover{
+    background: var(--gold);
+    color: white;
+  }
+
+  header .right{ display:flex; align-items:center; gap:16px; }
+
+  /* ---------- layout ---------- */
+  .layout{
+    display:grid;
+    grid-template-columns: 220px 1fr;
+    gap: 0;
+    max-width: 1240px;
+    margin: 0 auto;
+  }
+
+  aside{
+    padding: 32px 24px 32px 40px;
+    border-right: 1px solid var(--line);
+  }
+
+  .filtro-grupo{ margin-bottom: 28px; }
+  .filtro-grupo h3{
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    margin: 0 0 10px 0;
+    font-family: 'IBM Plex Sans', sans-serif;
+  }
+  .indice-alfabetico{
+    display:flex;
+    flex-wrap:wrap;
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+  .indice-alfabetico button{
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    border: 1px solid var(--line);
+    background: var(--card);
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--ink-soft);
+    padding: 0;
+  }
+  .indice-alfabetico button:hover{
+    background: var(--pine-light);
+    border-color: var(--pine);
+    color: var(--pine);
+  }
+  .lista-scroll{
+    max-height: 230px;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 4px 12px 10px 12px;
+    background: var(--card);
+  }
+  .letra-header{
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gold);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 12px 0 4px 0;
+  }
+  .letra-grupo:first-child .letra-header{ margin-top: 8px; }
+  .lista-scroll label{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size: 14px;
+    color: var(--ink);
+    margin-bottom: 8px;
+    cursor:pointer;
+  }
+  .lista-scroll input[type=checkbox]{
+    accent-color: var(--pine);
+    width:15px; height:15px;
+  }
+  .filtro-grupo label{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size: 14px;
+    color: var(--ink);
+    margin-bottom: 8px;
+    cursor:pointer;
+    border-radius: 4px;
+    padding: 2px 4px;
+    margin-left: -4px;
+    transition: background 0.12s ease;
+  }
+  .filtro-grupo label:hover, .lista-scroll label:hover{
+    background: var(--pine-light);
+  }
+  .filtro-grupo input[type=checkbox]{
+    accent-color: var(--pine);
+    width:15px; height:15px;
+  }
+
+  main{ padding: 32px 40px; }
+
+  .main-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom: 22px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 16px;
+  }
+  .main-top h2{
+    font-size: 26px;
+    margin:0;
+    font-weight: 600;
+  }
+  .main-top p{
+    margin: 6px 0 0 0;
+    color: var(--ink-soft);
+    font-size: 14px;
+  }
+  .conteo{ font-size: 14px; color: var(--ink-soft); }
+
+  /* ---------- grid de tarjetas ---------- */
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+  }
+
+  @keyframes aparecer{
+    from{ opacity: 0; transform: translateY(6px); }
+    to{ opacity: 1; transform: translateY(0); }
+  }
+
+  .tarjeta{
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 20px;
+    display:flex;
+    flex-direction:column;
+    gap: 10px;
+    transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+    animation: aparecer 0.25s ease both;
+  }
+  .tarjeta:hover{
+    box-shadow: 0 6px 18px rgba(31,42,36,0.08);
+    transform: translateY(-2px);
+    border-color: var(--pine);
+  }
+
+  .tarjeta-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap: 10px;
+  }
+
+  .materia-tag{
+    font-size: 12px;
+    color: var(--pine);
+    background: var(--pine-light);
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+
+  .tipo-icono{
+    width: 34px; height:34px;
+    border-radius: 6px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size: 13px;
+    color: var(--ink-soft);
+    flex-shrink:0;
+  }
+
+  .tarjeta h3{
+    font-size: 17px;
+    margin: 2px 0 0 0;
+    line-height: 1.35;
+    font-weight: 600;
+  }
+
+  .tarjeta p.desc{
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .tarjeta-meta{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top: 6px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+    font-size: 12.5px;
+    color: var(--ink-soft);
+  }
+
+  .autor{ display:flex; align-items:center; gap:7px; }
+  .avatar{
+    width: 22px; height:22px;
+    border-radius: 50%;
+    background: var(--gold);
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .nivel{ color: var(--ink-soft); }
+
+  .sin-resultados{
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--ink-soft);
+  }
+  .sin-resultados .icono{
+    font-size: 32px;
+    margin-bottom: 10px;
+  }
+  .sin-resultados p{
+    font-size: 14px;
+    margin: 4px 0 0 0;
+  }
+  .sin-resultados strong{ color: var(--ink); }
+
+  @media (max-width: 800px){
+    .layout{ grid-template-columns: 1fr; }
+    aside{ border-right:none; border-bottom: 1px solid var(--line); padding: 24px 20px; }
+    main{ padding: 24px 20px; }
+    .grid{ grid-template-columns: 1fr; }
+    header{ flex-direction:column; align-items:stretch; gap:14px; padding: 18px 20px; }
+    header .right{ flex-direction: column; align-items: stretch; width: 100%; gap: 10px; }
+    .searchbar{ width:100%; }
+    .subir-btn, .donar-btn{ text-align:center; }
+    .main-top{ flex-direction: column; align-items: flex-start; gap: 6px; }
+    .brand h1{ font-size: 19px; }
+  }
