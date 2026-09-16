@@ -118,12 +118,10 @@ function Tarjeta(props) {
   )
 }
 
-// Componente reutilizable: un grupo de checkboxes que agregan/sacan valores de una lista de estado.
 function GrupoCheckbox(props) {
   function estaElegido(valor) {
     return props.elegidos.includes(valor)
   }
-
   function toggle(valor) {
     if (estaElegido(valor)) {
       props.setElegidos(props.elegidos.filter(function (v) { return v !== valor }))
@@ -131,7 +129,6 @@ function GrupoCheckbox(props) {
       props.setElegidos([...props.elegidos, valor])
     }
   }
-
   return (
     <div className="filtro-grupo">
       <h3>{props.titulo}</h3>
@@ -153,7 +150,138 @@ function GrupoCheckbox(props) {
   )
 }
 
+function ComboEtiquetas(props) {
+  const [elegidos, setElegidos] = useState([])
+  const [texto, setTexto] = useState('')
+
+  function agregar(valor) {
+    const esNueva = !props.opciones.some(function (o) {
+      return o.toLowerCase() === valor.toLowerCase()
+    })
+    const nuevoChip = { valor: valor, esNueva: esNueva }
+
+    if (props.unico) {
+      setElegidos([nuevoChip])
+    } else {
+      setElegidos([...elegidos, nuevoChip])
+    }
+    setTexto('')
+  }
+
+  function quitar(valor) {
+    setElegidos(elegidos.filter(function (e) { return e.valor !== valor }))
+  }
+
+  const yaElegidos = elegidos.map(function (e) { return e.valor.toLowerCase() })
+  const textoLimpio = texto.trim()
+  const coincidencias = textoLimpio === '' ? [] : props.opciones.filter(function (o) {
+    return !yaElegidos.includes(o.toLowerCase()) && o.toLowerCase().includes(textoLimpio.toLowerCase())
+  })
+  const existeExacto = props.opciones.some(function (o) {
+    return o.toLowerCase() === textoLimpio.toLowerCase()
+  })
+
+  return (
+    <div className="campo combo">
+      <label>{props.titulo}</label>
+      <div className="chips">
+        {elegidos.map(function (e) {
+          return (
+            <span key={e.valor} className={'chip' + (e.esNueva ? ' nueva' : '')}>
+              {e.valor} <button type="button" onClick={function () { quitar(e.valor) }}>×</button>
+            </span>
+          )
+        })}
+      </div>
+      <input
+        type="text"
+        placeholder={props.placeholder}
+        value={texto}
+        onChange={function (e) { setTexto(e.target.value) }}
+      />
+      {textoLimpio !== '' && (
+        <div className="combo-lista abierta">
+          {coincidencias.slice(0, 8).map(function (op) {
+            return (
+              <div key={op} className="combo-opcion" onClick={function () { agregar(op) }}>
+                {op}
+              </div>
+            )
+          })}
+          {!existeExacto && (
+            <div className="combo-opcion-nueva" onClick={function () { agregar(textoLimpio) }}>
+              + Agregar "{textoLimpio}" (queda pendiente de aprobación)
+            </div>
+          )}
+        </div>
+      )}
+      <p className="ayuda">{props.ayuda}</p>
+    </div>
+  )
+}
+
+function FormularioSubida(props) {
+  return (
+    <div className="wrap">
+      <a className="volver" href="#" onClick={function (e) { e.preventDefault(); props.onVolver() }}>
+        ← Volver a Materiales
+      </a>
+      <h1>Subir material</h1>
+      <p className="subtitulo">Completá los datos. Si una materia o contenido no está en la lista, podés agregarlo vos mismo/a.</p>
+
+      <form onSubmit={function (e) { e.preventDefault() }}>
+        <div className="campo">
+          <label>Título del material</label>
+          <input type="text" placeholder="Ej: Guía de ejercicios sobre derivadas" />
+        </div>
+
+        <ComboEtiquetas
+          titulo="Materia"
+          opciones={opcionesMateria}
+          placeholder="Escribí para buscar o agregar una materia…"
+          ayuda="Si escribís algo que no existe, se agrega como pendiente de aprobación."
+        />
+
+        <div className="campo">
+          <label>Año</label>
+          <select>
+            <option>1.º año</option>
+            <option>2.º año</option>
+            <option>3.º año</option>
+            <option defaultValue>4.º año</option>
+            <option>5.º año</option>
+            <option>6.º año</option>
+          </select>
+        </div>
+
+        <ComboEtiquetas
+          titulo="Tipo de archivo"
+          opciones={opcionesTipo}
+          unico={true}
+          placeholder="Escribí para buscar o agregar un tipo de archivo…"
+          ayuda="Elegí uno solo. Si no está en la lista, se agrega como pendiente de aprobación."
+        />
+
+        <ComboEtiquetas
+          titulo="Contenido"
+          opciones={opcionesContenido}
+          placeholder="Escribí para buscar o agregar un contenido…"
+          ayuda="Podés agregar más de uno. Si no existe, queda pendiente de aprobación."
+        />
+
+        <div className="campo">
+          <label>Descripción</label>
+          <textarea placeholder="Un par de líneas sobre el material…"></textarea>
+        </div>
+
+        <button className="subir-btn" type="submit">Publicar material</button>
+      </form>
+    </div>
+  )
+}
+
 function App() {
+  const [vista, setVista] = useState('inicio')
   const [busqueda, setBusqueda] = useState('')
   const [aniosElegidos, setAniosElegidos] = useState([])
   const [materiasElegidas, setMateriasElegidas] = useState([])
@@ -182,6 +310,10 @@ function App() {
     return coincideTexto && coincideAnio && coincideMateria && coincideContenido && coincideTipo
   })
 
+  if (vista === 'formulario') {
+    return <FormularioSubida onVolver={function () { setVista('inicio') }} />
+  }
+
   return (
     <>
       <header>
@@ -198,7 +330,9 @@ function App() {
             />
           </div>
           <a className="donar-btn" href="https://cafecito.app/recursero1" target="_blank" rel="noopener">☕ Invitame un cafecito</a>
-          <a className="subir-btn" href="#">Subir material</a>
+          <a className="subir-btn" href="#" onClick={function (e) { e.preventDefault(); setVista('formulario') }}>
+  Subir material
+</a>
         </div>
       </header>
 
