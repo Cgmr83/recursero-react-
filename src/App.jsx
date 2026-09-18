@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 import './App.css'
 
-const opcionesMateria = [
+const BASE_MATERIA = [
   "Física", "Fisicoquímica", "Biología", "Matemática", "Química",
   "Partículas, Energía y Cosmología", "Radiación y Vida", "Química, Alimentación y Salud",
   "Ecología", "Historia de la Vida y de la Tierra", "Filosofía de la Ciencia y la Tecnología",
@@ -10,13 +10,13 @@ const opcionesMateria = [
   "Matemática para la Física", "Física y Tecnología", "Problemáticas de la Física Actual", "Laboratorio"
 ]
 
-const opcionesContenido = [
+const BASE_CONTENIDO = [
   "Álgebra", "Biotecnología", "Derivada", "Energía", "Estadística y probabilidad",
   "Evolución", "Geometría", "Integral", "Límite", "Salud y ambiente", "Universo y radiación"
 ]
 
-const opcionesTipo = [
-  "Presentación", "Texto", "Planificación", "Proyecto / laboratorio", "Simulador", "Experimento"
+const BASE_TIPO = [
+  "Presentación", "Texto", "Planificación", "Proyecto / laboratorio", "Simulador", "Experimento", "Otros"
 ]
 
 const iconosPorTipo = {
@@ -26,6 +26,13 @@ const iconosPorTipo = {
   'proyecto / laboratorio': 'LAB',
   'simulador': 'SIM',
   'experimento': 'EXP'
+}
+
+function iconoDeTipo(tipo) {
+  const conocido = iconosPorTipo[tipo.toLowerCase()]
+  if (conocido) return conocido
+  // Tipo nuevo (sin ícono fijo): usamos las primeras 3 letras, en mayúsculas.
+  return tipo.slice(0, 3).toUpperCase()
 }
 
 function iniciales(nombre) {
@@ -42,10 +49,30 @@ function Tarjeta(props) {
     <div className="tarjeta">
       <div className="tarjeta-top">
         <span className="materia-tag">{props.materia}</span>
-        <div className="tipo-icono">{iconosPorTipo[props.tipo.toLowerCase()] || '?'}</div>
+        <div className="tipo-icono">{iconoDeTipo(props.tipo)}</div>
+      </div>
+      <div className="tarjeta-acciones">
+        {props.puedeEditar && (
+          <button type="button" className="editar-btn" onClick={props.onEditar}>✎ Editar</button>
+        )}
+        {props.puedeBorrar && (
+          <button type="button" className="borrar-btn" onClick={props.onBorrar}>🗑 Eliminar</button>
+        )}
       </div>
       <h3>{props.titulo}</h3>
       <p className="desc">{props.descripcion}</p>
+      <div className="tarjeta-links">
+        {props.archivoUrl && (
+          <a href={props.archivoUrl} target="_blank" rel="noopener" className="ver-archivo">
+            Ver archivo ↗
+          </a>
+        )}
+        {props.enlaceUrl && (
+          <a href={props.enlaceUrl} target="_blank" rel="noopener" className="ver-archivo">
+            Ver enlace ↗
+          </a>
+        )}
+      </div>
       <div className="tarjeta-meta">
         <div className="autor">
           <div className="avatar">{iniciales(props.autor)}</div>
@@ -161,8 +188,9 @@ function FiltroContenidoAlfabetico(props) {
 }
 
 // Combo con chips: buscar en una lista de opciones, o agregar un valor nuevo como "pendiente".
+// Tiene su PROPIO estado interno (elegidos, texto) -- cada vez que lo usás es independiente.
 function ComboEtiquetas(props) {
-  const [elegidos, setElegidos] = useState([])
+  const [elegidos, setElegidos] = useState(props.inicial || [])
   const [texto, setTexto] = useState('')
 
   function reportar(lista) {
@@ -177,7 +205,7 @@ function ComboEtiquetas(props) {
     const nuevoChip = { valor: valor, esNueva: esNueva }
 
     if (props.unico) {
-      reportar([nuevoChip])
+      reportar([nuevoChip]) // reemplaza, en vez de acumular
     } else {
       reportar([...elegidos, nuevoChip])
     }
@@ -236,13 +264,105 @@ function ComboEtiquetas(props) {
   )
 }
 
+function AuthForm(props) {
+  const [modo, setModo] = useState('login')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [cargando, setCargando] = useState(false)
+
+  async function enviar(e) {
+    e.preventDefault()
+    setCargando(true)
+
+    const resultado = modo === 'login'
+      ? await supabase.auth.signInWithPassword({ email: email, password: password })
+      : await supabase.auth.signUp({ email: email, password: password })
+
+    setCargando(false)
+
+    if (resultado.error) {
+      alert('Error: ' + resultado.error.message)
+    } else if (modo === 'registro' && !resultado.data.session) {
+      alert('¡Cuenta creada! Revisá tu email (y la carpeta de spam) y hacé clic en el link de confirmación antes de poder ingresar.')
+      setModo('login')
+    } else {
+      props.onListo()
+    }
+  }
+
+  return (
+    <div className="wrap">
+      <a className="volver" href="#" onClick={function (e) { e.preventDefault(); props.onVolver() }}>
+        ← Volver a Materiales
+      </a>
+      <h1>{modo === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}</h1>
+      <p className="subtitulo">
+        {modo === 'login'
+          ? 'Ingresá con tu email y contraseña para poder subir y editar materiales.'
+          : 'Creá una cuenta para poder subir y editar materiales.'}
+      </p>
+
+      <form onSubmit={enviar}>
+        <div className="campo">
+          <label>Email</label>
+          <input
+            type="email"
+            placeholder="tu@email.com"
+            value={email}
+            onChange={function (e) { setEmail(e.target.value) }}
+            required
+          />
+        </div>
+        <div className="campo">
+          <label>Contraseña</label>
+          <input
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={function (e) { setPassword(e.target.value) }}
+            required
+          />
+        </div>
+        <button className="subir-btn" type="submit" disabled={cargando}>
+          {cargando ? 'Un momento...' : (modo === 'login' ? 'Entrar' : 'Crear cuenta')}
+        </button>
+      </form>
+
+      <p className="subtitulo" style={{ marginTop: '16px' }}>
+        {modo === 'login' ? (
+          <>
+            ¿No tenés cuenta?{' '}
+            <a href="#" onClick={function (e) { e.preventDefault(); setModo('registro') }}>Creá una</a>
+          </>
+        ) : (
+          <>
+            ¿Ya tenés cuenta?{' '}
+            <a href="#" onClick={function (e) { e.preventDefault(); setModo('login') }}>Iniciá sesión</a>
+          </>
+        )}
+      </p>
+    </div>
+  )
+}
+
+function textoAChips(texto) {
+  if (!texto) return []
+  return texto.split(',').map(function (v) { return { valor: v.trim(), esNueva: false } })
+}
+
 function FormularioSubida(props) {
-  const [titulo, setTitulo] = useState('')
-  const [anio, setAnio] = useState(4)
-  const [materiaElegida, setMateriaElegida] = useState([])
-  const [tipoElegido, setTipoElegido] = useState([])
-  const [contenidoElegido, setContenidoElegido] = useState([])
-  const [descripcion, setDescripcion] = useState('')
+  const sesion = props.sesion
+  const editando = Boolean(props.materialInicial)
+  const original = props.materialInicial
+
+  const [titulo, setTitulo] = useState(editando ? original.titulo : '')
+  const [anio, setAnio] = useState(editando ? original.anio : 4)
+  const [materiaElegida, setMateriaElegida] = useState(editando ? textoAChips(original.materia) : [])
+  const [tipoElegido, setTipoElegido] = useState(editando ? textoAChips(original.tipo) : [])
+  const [contenidoElegido, setContenidoElegido] = useState(editando ? textoAChips(original.contenido) : [])
+  const [descripcion, setDescripcion] = useState(editando ? (original.descripcion || '') : '')
+  const [archivo, setArchivo] = useState(null)
+  const [enlace, setEnlace] = useState(editando ? (original.enlace_url || '') : '')
   const [enviando, setEnviando] = useState(false)
 
   async function enviar(e) {
@@ -255,24 +375,74 @@ function FormularioSubida(props) {
 
     setEnviando(true)
 
-    const nuevoMaterial = {
+    let archivoUrl = null
+
+    if (archivo) {
+      const nombreArchivo = Date.now() + '-' + archivo.name
+
+      const { error: errorSubida } = await supabase.storage
+        .from('materiales-archivos')
+        .upload(nombreArchivo, archivo)
+
+      if (errorSubida) {
+        setEnviando(false)
+        alert('Hubo un error al subir el archivo: ' + errorSubida.message)
+        return
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('materiales-archivos')
+        .getPublicUrl(nombreArchivo)
+
+      archivoUrl = urlData.publicUrl
+    }
+
+    const datosMaterial = {
       titulo: titulo.trim(),
       materia: materiaElegida.map(function (m) { return m.valor }).join(', '),
       anio: anio,
       tipo: tipoElegido[0].valor,
       contenido: contenidoElegido.map(function (c) { return c.valor }).join(', '),
       descripcion: descripcion.trim(),
-      autor: 'Anónimo'
+      archivo_url: archivoUrl || (editando ? original.archivo_url : null),
+      enlace_url: enlace.trim() === '' ? (editando ? original.enlace_url : null) : enlace.trim()
     }
 
-    const { error } = await supabase.from('materiales').insert(nuevoMaterial)
+    let error
+
+    if (editando) {
+      const resultado = await supabase.from('materiales').update(datosMaterial).eq('id', original.id)
+      error = resultado.error
+    } else {
+      datosMaterial.autor = sesion.user.email
+      datosMaterial.user_id = sesion.user.id
+      const resultado = await supabase.from('materiales').insert(datosMaterial)
+      error = resultado.error
+    }
+
+    const propuestasMateria = materiaElegida.filter(function (chip) { return chip.esNueva })
+      .map(function (chip) { return { campo: 'materia', valor: chip.valor, creado_por: sesion.user.id } })
+    const propuestasTipo = tipoElegido.filter(function (chip) { return chip.esNueva })
+      .map(function (chip) { return { campo: 'tipo', valor: chip.valor, creado_por: sesion.user.id } })
+    const propuestasContenido = contenidoElegido.filter(function (chip) { return chip.esNueva })
+      .map(function (chip) { return { campo: 'contenido', valor: chip.valor, creado_por: sesion.user.id } })
+
+    const filas = [...propuestasMateria, ...propuestasTipo, ...propuestasContenido]
+
+    if (!error && filas.length > 0) {
+      const resultadoPendientes = await supabase.from('valores_pendientes').insert(filas)
+      if (resultadoPendientes.error) {
+        console.error('Error al guardar valores pendientes:', resultadoPendientes.error)
+        alert('El material se guardó, pero hubo un problema al registrar los valores nuevos como pendientes: ' + resultadoPendientes.error.message)
+      }
+    }
 
     setEnviando(false)
 
     if (error) {
       alert('Hubo un error al publicar: ' + error.message)
     } else {
-      alert('¡Material publicado!')
+      alert(editando ? '¡Material actualizado!' : '¡Material publicado!')
       props.onPublicado()
     }
   }
@@ -282,7 +452,7 @@ function FormularioSubida(props) {
       <a className="volver" href="#" onClick={function (e) { e.preventDefault(); props.onVolver() }}>
         ← Volver a Materiales
       </a>
-      <h1>Subir material</h1>
+      <h1>{editando ? 'Editar material' : 'Subir material'}</h1>
       <p className="subtitulo">Completá los datos. Si una materia o contenido no está en la lista, podés agregarlo vos mismo/a.</p>
 
       <form onSubmit={enviar}>
@@ -298,7 +468,8 @@ function FormularioSubida(props) {
 
         <ComboEtiquetas
           titulo="Materia"
-          opciones={opcionesMateria}
+          opciones={props.opcionesMateria}
+          inicial={materiaElegida}
           placeholder="Escribí para buscar o agregar una materia…"
           ayuda="Si escribís algo que no existe, se agrega como pendiente de aprobación."
           onChange={setMateriaElegida}
@@ -318,8 +489,9 @@ function FormularioSubida(props) {
 
         <ComboEtiquetas
           titulo="Tipo de archivo"
-          opciones={opcionesTipo}
+          opciones={props.opcionesTipo}
           unico={true}
+          inicial={tipoElegido}
           placeholder="Escribí para buscar o agregar un tipo de archivo…"
           ayuda="Elegí uno solo. Si no está en la lista, se agrega como pendiente de aprobación."
           onChange={setTipoElegido}
@@ -327,7 +499,8 @@ function FormularioSubida(props) {
 
         <ComboEtiquetas
           titulo="Contenido"
-          opciones={opcionesContenido}
+          opciones={props.opcionesContenido}
+          inicial={contenidoElegido}
           placeholder="Escribí para buscar o agregar un contenido…"
           ayuda="Podés agregar más de uno. Si no existe, queda pendiente de aprobación."
           onChange={setContenidoElegido}
@@ -342,10 +515,91 @@ function FormularioSubida(props) {
           ></textarea>
         </div>
 
+        <div className="campo">
+          <label>Archivo</label>
+          <input
+            type="file"
+            onChange={function (e) { setArchivo(e.target.files[0]) }}
+          />
+          <p className="ayuda">Subí un PDF, imagen u otro archivo. Si preferís, dejá esto vacío y pegá un enlace abajo.</p>
+        </div>
+
+        <div className="campo">
+          <label>O pegá un enlace</label>
+          <input
+            type="text"
+            placeholder="Link a un video, Google Drive, simulador externo, etc."
+            value={enlace}
+            onChange={function (e) { setEnlace(e.target.value) }}
+          />
+          <p className="ayuda">Podés completar este y el archivo juntos (por ejemplo, un PDF y un link a un simulador).</p>
+        </div>
+
         <button className="subir-btn" type="submit" disabled={enviando}>
-          {enviando ? 'Publicando...' : 'Publicar material'}
+          {enviando ? 'Guardando...' : (editando ? 'Guardar cambios' : 'Publicar material')}
         </button>
       </form>
+    </div>
+  )
+}
+
+function PanelAdmin(props) {
+  const [pendientes, setPendientes] = useState([])
+  const [cargando, setCargando] = useState(true)
+
+  function cargarPendientes() {
+    setCargando(true)
+    supabase
+      .from('valores_pendientes')
+      .select('*')
+      .eq('estado', 'pendiente')
+      .then(function (res) {
+        setCargando(false)
+        if (!res.error) setPendientes(res.data)
+      })
+  }
+
+  useEffect(function () {
+    cargarPendientes()
+  }, [])
+
+  async function decidir(id, nuevoEstado) {
+    await supabase.from('valores_pendientes').update({ estado: nuevoEstado }).eq('id', id)
+    cargarPendientes()
+  }
+
+  return (
+    <div className="wrap">
+      <a className="volver" href="#" onClick={function (e) { e.preventDefault(); props.onVolver() }}>
+        ← Volver a Materiales
+      </a>
+      <h1>Panel de administración</h1>
+      <p className="subtitulo">Valores nuevos propuestos por usuarios, esperando aprobación.</p>
+
+      {cargando ? (
+        <p className="subtitulo">Cargando...</p>
+      ) : pendientes.length === 0 ? (
+        <p className="subtitulo">No hay nada pendiente por ahora.</p>
+      ) : (
+        pendientes.map(function (p) {
+          return (
+            <div className="pendiente-item" key={p.id}>
+              <div>
+                <span className="pendiente-campo">{p.campo}</span>
+                <strong className="pendiente-valor">{p.valor}</strong>
+              </div>
+              <div className="pendiente-acciones">
+                <button type="button" className="aprobar-btn" onClick={function () { decidir(p.id, 'aprobado') }}>
+                  Aprobar
+                </button>
+                <button type="button" className="rechazar-btn" onClick={function () { decidir(p.id, 'rechazado') }}>
+                  Rechazar
+                </button>
+              </div>
+            </div>
+          )
+        })
+      )}
     </div>
   )
 }
@@ -358,6 +612,65 @@ function App() {
   const [contenidosElegidos, setContenidosElegidos] = useState([])
   const [tiposElegidos, setTiposElegidos] = useState([])
   const [materiales, setMateriales] = useState([])
+  const [sesion, setSesion] = useState(null)
+  const [esAdmin, setEsAdmin] = useState(false)
+  const [materialEditando, setMaterialEditando] = useState(null)
+  const [opcionesMateria, setOpcionesMateria] = useState(BASE_MATERIA)
+  const [opcionesContenido, setOpcionesContenido] = useState(BASE_CONTENIDO)
+  const [opcionesTipo, setOpcionesTipo] = useState(BASE_TIPO)
+
+  function combinarConAprobados(base, campo, aprobados) {
+    const nuevos = aprobados
+      .filter(function (p) { return p.campo === campo })
+      .map(function (p) { return p.valor })
+
+    const combinado = [...base]
+    nuevos.forEach(function (valor) {
+      const yaEsta = combinado.some(function (o) { return o.toLowerCase() === valor.toLowerCase() })
+      if (!yaEsta) combinado.push(valor)
+    })
+    return combinado.sort()
+  }
+
+  function cargarOpciones() {
+    supabase.from('valores_pendientes').select('*').eq('estado', 'aprobado').then(function (res) {
+      if (res.error) {
+        console.error(res.error)
+        return
+      }
+      setOpcionesMateria(combinarConAprobados(BASE_MATERIA, 'materia', res.data))
+      setOpcionesContenido(combinarConAprobados(BASE_CONTENIDO, 'contenido', res.data))
+      setOpcionesTipo(combinarConAprobados(BASE_TIPO, 'tipo', res.data))
+    })
+  }
+
+  useEffect(function () {
+    cargarOpciones()
+  }, [])
+
+  useEffect(function () {
+    if (!sesion) {
+      setEsAdmin(false)
+      return
+    }
+    supabase.from('admins').select('user_id').eq('user_id', sesion.user.id).then(function (res) {
+      setEsAdmin(Boolean(res.data && res.data.length > 0))
+    })
+  }, [sesion])
+
+  useEffect(function () {
+    supabase.auth.getSession().then(function (res) {
+      setSesion(res.data.session)
+    })
+
+    const { data: listener } = supabase.auth.onAuthStateChange(function (_evento, nuevaSesion) {
+      setSesion(nuevaSesion)
+    })
+
+    return function () {
+      listener.subscription.unsubscribe()
+    }
+  }, [])
 
   function cargarMateriales() {
     supabase.from('materiales').select('*').then(function (res) {
@@ -372,6 +685,19 @@ function App() {
   useEffect(function () {
     cargarMateriales()
   }, [])
+
+  async function borrarMaterial(id) {
+    const confirmado = window.confirm('¿Seguro que querés eliminar este material? Esta acción no se puede deshacer.')
+    if (!confirmado) return
+
+    const { error } = await supabase.from('materiales').delete().eq('id', id)
+
+    if (error) {
+      alert('Hubo un error al eliminar: ' + error.message)
+    } else {
+      cargarMateriales()
+    }
+  }
 
   function toggleAnio(anio) {
     if (aniosElegidos.includes(anio)) {
@@ -395,13 +721,44 @@ function App() {
     return coincideTexto && coincideAnio && coincideMateria && coincideContenido && coincideTipo
   })
 
+  if (vista === 'login') {
+    return (
+      <AuthForm
+        onVolver={function () { setVista('inicio') }}
+        onListo={function () { setVista('inicio') }}
+      />
+    )
+  }
+
   if (vista === 'formulario') {
     return (
       <FormularioSubida
+        sesion={sesion}
+        opcionesMateria={opcionesMateria}
+        opcionesContenido={opcionesContenido}
+        opcionesTipo={opcionesTipo}
         onVolver={function () { setVista('inicio') }}
         onPublicado={function () { cargarMateriales(); setVista('inicio') }}
       />
     )
+  }
+
+  if (vista === 'editar') {
+    return (
+      <FormularioSubida
+        sesion={sesion}
+        materialInicial={materialEditando}
+        opcionesMateria={opcionesMateria}
+        opcionesContenido={opcionesContenido}
+        opcionesTipo={opcionesTipo}
+        onVolver={function () { setVista('inicio') }}
+        onPublicado={function () { cargarMateriales(); setVista('inicio') }}
+      />
+    )
+  }
+
+  if (vista === 'admin') {
+    return <PanelAdmin onVolver={function () { cargarOpciones(); setVista('inicio') }} />
   }
 
   return (
@@ -420,9 +777,18 @@ function App() {
             />
           </div>
           <a className="donar-btn" href="https://cafecito.app/recursero1" target="_blank" rel="noopener">☕ Invitame un cafecito</a>
-          <a className="subir-btn" href="#" onClick={function (e) { e.preventDefault(); setVista('formulario') }}>
-            Subir material
-          </a>
+          {sesion ? (
+            <>
+              <span className="sesion-email">{sesion.user.email}</span>
+              {esAdmin && (
+                <a className="donar-btn" href="#" onClick={function (e) { e.preventDefault(); setVista('admin') }}>Panel admin</a>
+              )}
+              <a className="donar-btn" href="#" onClick={function (e) { e.preventDefault(); supabase.auth.signOut() }}>Cerrar sesión</a>
+              <a className="subir-btn" href="#" onClick={function (e) { e.preventDefault(); setVista('formulario') }}>Subir material</a>
+            </>
+          ) : (
+            <a className="subir-btn" href="#" onClick={function (e) { e.preventDefault(); setVista('login') }}>Iniciar sesión para subir</a>
+          )}
         </div>
       </header>
 
@@ -493,6 +859,12 @@ function App() {
                     tipo={m.tipo}
                     descripcion={m.descripcion}
                     autor={m.autor}
+                    archivoUrl={m.archivo_url}
+                    enlaceUrl={m.enlace_url}
+                    puedeEditar={Boolean(sesion) && (sesion.user.id === m.user_id || esAdmin)}
+                    onEditar={function () { setMaterialEditando(m); setVista('editar') }}
+                    puedeBorrar={esAdmin}
+                    onBorrar={function () { borrarMaterial(m.id) }}
                   />
                 )
               })

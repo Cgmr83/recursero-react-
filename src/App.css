@@ -488,3 +488,94 @@
     border-top: 1px dashed var(--line);
   }
   .combo-opcion-nueva:hover{ background: var(--gold-light); }
+    .ver-archivo{
+    font-size: 13px;
+    color: var(--pine);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .ver-archivo:hover{ text-decoration: underline; }
+    .tarjeta-links{
+    display: flex;
+    gap: 12px;
+  }
+    .sesion-email{
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+    .editar-btn{
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .editar-btn:hover{
+    border-color: var(--pine);
+    color: var(--pine);
+  }
+    .pendiente-item{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+  }
+  .pendiente-campo{
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    letter-spacing: 0.5px;
+    display: block;
+  }
+  .pendiente-valor{
+    font-size: 15px;
+  }
+  .pendiente-acciones{
+    display: flex;
+    gap: 8px;
+  }
+  .aprobar-btn{
+    background: var(--pine);
+    color: white;
+    border: none;
+    padding: 7px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+  }
+  .rechazar-btn{
+    background: transparent;
+    color: var(--ink-soft);
+    border: 1px solid var(--line);
+    padding: 7px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+  }
+    .tarjeta-acciones{
+    display: flex;
+    gap: 8px;
+  }
+  .borrar-btn{
+    background: transparent;
+    border: 1px solid #d97a5f;
+    color: #c14a2e;
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .borrar-btn:hover{
+    background: #c14a2e;
+    color: white;
+  }
