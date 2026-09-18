@@ -1,85 +1,6 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { supabase } from './supabaseClient'
 import './App.css'
-
-const materiales = [
-  {
-    titulo: "Radiación ionizante: usos diagnósticos y terapéuticos",
-    materia: "Radiación y Vida",
-    anio: 5,
-    contenido: "universo y radiación",
-    tipo: "presentación",
-    tipoIcono: "PRE",
-    descripcion: "Presentación sobre la interacción de la radiación con los tejidos vivos y sus aplicaciones médicas.",
-    autor: "Sofía Castro",
-    avatar: "SC"
-  },
-  {
-    titulo: "Guía teórica: vectores y magnitudes físicas",
-    materia: "Matemática para la Física",
-    anio: 5,
-    contenido: "geometría",
-    tipo: "texto",
-    tipoIcono: "TXT",
-    descripcion: "Desarrollo conceptual del tratamiento vectorial aplicado al movimiento y las fuerzas.",
-    autor: "Juan Lima",
-    avatar: "JL"
-  },
-  {
-    titulo: "El registro fósil — guía de laboratorio",
-    materia: "Historia de la Vida y de la Tierra",
-    anio: 3,
-    contenido: "evolución",
-    tipo: "proyecto / laboratorio",
-    tipoIcono: "LAB",
-    descripcion: "Proyecto experimental para interpretar la datación relativa a partir de estratos simulados.",
-    autor: "Pablo Díaz",
-    avatar: "PD"
-  },
-  {
-    titulo: "Planificación anual: dinámica de poblaciones",
-    materia: "Ecología",
-    anio: 4,
-    contenido: "salud y ambiente",
-    tipo: "planificación",
-    tipoIcono: "PLA",
-    descripcion: "Unidad completa con secuencia de clases, salida de campo y propuesta de evaluación.",
-    autor: "Marina Rossi",
-    avatar: "MR"
-  },
-  {
-    titulo: "Simulador de circuitos eléctricos básicos",
-    materia: "Física y Tecnología",
-    anio: 5,
-    contenido: "energía",
-    tipo: "simulador",
-    tipoIcono: "SIM",
-    descripcion: "Herramienta interactiva para armar circuitos y visualizar corriente y voltaje.",
-    autor: "Lucía Núñez",
-    avatar: "LN"
-  },
-  {
-    titulo: "Experimento: pH de alimentos de consumo diario",
-    materia: "Química, Alimentación y Salud",
-    anio: 4,
-    contenido: "salud y ambiente",
-    tipo: "experimento",
-    tipoIcono: "EXP",
-    descripcion: "Actividad grupal para medir y comparar la acidez de distintos alimentos con indicadores caseros.",
-    autor: "Sofía Castro",
-    avatar: "SC"
-  },
-  {
-    titulo: "Experimento: fluidez de membrana",
-    materia: "Biología",
-    anio: 3,
-    contenido: "biotecnología",
-    tipo: "experimento",
-    tipoIcono: "EXP",
-    descripcion: "Actividad grupal.",
-    autor: "Claudia Muñoz",
-    avatar: "SC"
-  }
-]
 
 const opcionesMateria = [
   "Física", "Fisicoquímica", "Biología", "Matemática", "Química",
@@ -98,18 +19,36 @@ const opcionesTipo = [
   "Presentación", "Texto", "Planificación", "Proyecto / laboratorio", "Simulador", "Experimento"
 ]
 
+const iconosPorTipo = {
+  'presentación': 'PRE',
+  'texto': 'TXT',
+  'planificación': 'PLA',
+  'proyecto / laboratorio': 'LAB',
+  'simulador': 'SIM',
+  'experimento': 'EXP'
+}
+
+function iniciales(nombre) {
+  return nombre
+    .split(' ')
+    .map(function (palabra) { return palabra[0] })
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+}
+
 function Tarjeta(props) {
   return (
     <div className="tarjeta">
       <div className="tarjeta-top">
         <span className="materia-tag">{props.materia}</span>
-        <div className="tipo-icono">{props.tipoIcono}</div>
+        <div className="tipo-icono">{iconosPorTipo[props.tipo.toLowerCase()] || '?'}</div>
       </div>
       <h3>{props.titulo}</h3>
       <p className="desc">{props.descripcion}</p>
       <div className="tarjeta-meta">
         <div className="autor">
-          <div className="avatar">{props.avatar}</div>
+          <div className="avatar">{iniciales(props.autor)}</div>
           <span>{props.autor}</span>
         </div>
         <span className="nivel">{props.anio}.º año</span>
@@ -222,10 +161,14 @@ function FiltroContenidoAlfabetico(props) {
 }
 
 // Combo con chips: buscar en una lista de opciones, o agregar un valor nuevo como "pendiente".
-// Tiene su PROPIO estado interno (elegidos, texto) -- cada vez que lo usás es independiente.
 function ComboEtiquetas(props) {
   const [elegidos, setElegidos] = useState([])
   const [texto, setTexto] = useState('')
+
+  function reportar(lista) {
+    setElegidos(lista)
+    if (props.onChange) props.onChange(lista)
+  }
 
   function agregar(valor) {
     const esNueva = !props.opciones.some(function (o) {
@@ -234,15 +177,15 @@ function ComboEtiquetas(props) {
     const nuevoChip = { valor: valor, esNueva: esNueva }
 
     if (props.unico) {
-      setElegidos([nuevoChip])
+      reportar([nuevoChip])
     } else {
-      setElegidos([...elegidos, nuevoChip])
+      reportar([...elegidos, nuevoChip])
     }
     setTexto('')
   }
 
   function quitar(valor) {
-    setElegidos(elegidos.filter(function (e) { return e.valor !== valor }))
+    reportar(elegidos.filter(function (e) { return e.valor !== valor }))
   }
 
   const yaElegidos = elegidos.map(function (e) { return e.valor.toLowerCase() })
@@ -294,6 +237,46 @@ function ComboEtiquetas(props) {
 }
 
 function FormularioSubida(props) {
+  const [titulo, setTitulo] = useState('')
+  const [anio, setAnio] = useState(4)
+  const [materiaElegida, setMateriaElegida] = useState([])
+  const [tipoElegido, setTipoElegido] = useState([])
+  const [contenidoElegido, setContenidoElegido] = useState([])
+  const [descripcion, setDescripcion] = useState('')
+  const [enviando, setEnviando] = useState(false)
+
+  async function enviar(e) {
+    e.preventDefault()
+
+    if (titulo.trim() === '' || materiaElegida.length === 0 || tipoElegido.length === 0) {
+      alert('Completá al menos el título, la materia y el tipo de archivo.')
+      return
+    }
+
+    setEnviando(true)
+
+    const nuevoMaterial = {
+      titulo: titulo.trim(),
+      materia: materiaElegida.map(function (m) { return m.valor }).join(', '),
+      anio: anio,
+      tipo: tipoElegido[0].valor,
+      contenido: contenidoElegido.map(function (c) { return c.valor }).join(', '),
+      descripcion: descripcion.trim(),
+      autor: 'Anónimo'
+    }
+
+    const { error } = await supabase.from('materiales').insert(nuevoMaterial)
+
+    setEnviando(false)
+
+    if (error) {
+      alert('Hubo un error al publicar: ' + error.message)
+    } else {
+      alert('¡Material publicado!')
+      props.onPublicado()
+    }
+  }
+
   return (
     <div className="wrap">
       <a className="volver" href="#" onClick={function (e) { e.preventDefault(); props.onVolver() }}>
@@ -302,10 +285,15 @@ function FormularioSubida(props) {
       <h1>Subir material</h1>
       <p className="subtitulo">Completá los datos. Si una materia o contenido no está en la lista, podés agregarlo vos mismo/a.</p>
 
-      <form onSubmit={function (e) { e.preventDefault() }}>
+      <form onSubmit={enviar}>
         <div className="campo">
           <label>Título del material</label>
-          <input type="text" placeholder="Ej: Guía de ejercicios sobre derivadas" />
+          <input
+            type="text"
+            placeholder="Ej: Guía de ejercicios sobre derivadas"
+            value={titulo}
+            onChange={function (e) { setTitulo(e.target.value) }}
+          />
         </div>
 
         <ComboEtiquetas
@@ -313,17 +301,18 @@ function FormularioSubida(props) {
           opciones={opcionesMateria}
           placeholder="Escribí para buscar o agregar una materia…"
           ayuda="Si escribís algo que no existe, se agrega como pendiente de aprobación."
+          onChange={setMateriaElegida}
         />
 
         <div className="campo">
           <label>Año</label>
-          <select>
-            <option>1.º año</option>
-            <option>2.º año</option>
-            <option>3.º año</option>
-            <option defaultValue>4.º año</option>
-            <option>5.º año</option>
-            <option>6.º año</option>
+          <select value={anio} onChange={function (e) { setAnio(Number(e.target.value)) }}>
+            <option value={1}>1.º año</option>
+            <option value={2}>2.º año</option>
+            <option value={3}>3.º año</option>
+            <option value={4}>4.º año</option>
+            <option value={5}>5.º año</option>
+            <option value={6}>6.º año</option>
           </select>
         </div>
 
@@ -333,6 +322,7 @@ function FormularioSubida(props) {
           unico={true}
           placeholder="Escribí para buscar o agregar un tipo de archivo…"
           ayuda="Elegí uno solo. Si no está en la lista, se agrega como pendiente de aprobación."
+          onChange={setTipoElegido}
         />
 
         <ComboEtiquetas
@@ -340,14 +330,21 @@ function FormularioSubida(props) {
           opciones={opcionesContenido}
           placeholder="Escribí para buscar o agregar un contenido…"
           ayuda="Podés agregar más de uno. Si no existe, queda pendiente de aprobación."
+          onChange={setContenidoElegido}
         />
 
         <div className="campo">
           <label>Descripción</label>
-          <textarea placeholder="Un par de líneas sobre el material…"></textarea>
+          <textarea
+            placeholder="Un par de líneas sobre el material…"
+            value={descripcion}
+            onChange={function (e) { setDescripcion(e.target.value) }}
+          ></textarea>
         </div>
 
-        <button className="subir-btn" type="submit">Publicar material</button>
+        <button className="subir-btn" type="submit" disabled={enviando}>
+          {enviando ? 'Publicando...' : 'Publicar material'}
+        </button>
       </form>
     </div>
   )
@@ -360,6 +357,21 @@ function App() {
   const [materiasElegidas, setMateriasElegidas] = useState([])
   const [contenidosElegidos, setContenidosElegidos] = useState([])
   const [tiposElegidos, setTiposElegidos] = useState([])
+  const [materiales, setMateriales] = useState([])
+
+  function cargarMateriales() {
+    supabase.from('materiales').select('*').then(function (res) {
+      if (res.error) {
+        console.error(res.error)
+      } else {
+        setMateriales(res.data)
+      }
+    })
+  }
+
+  useEffect(function () {
+    cargarMateriales()
+  }, [])
 
   function toggleAnio(anio) {
     if (aniosElegidos.includes(anio)) {
@@ -384,7 +396,12 @@ function App() {
   })
 
   if (vista === 'formulario') {
-    return <FormularioSubida onVolver={function () { setVista('inicio') }} />
+    return (
+      <FormularioSubida
+        onVolver={function () { setVista('inicio') }}
+        onPublicado={function () { cargarMateriales(); setVista('inicio') }}
+      />
+    )
   }
 
   return (
@@ -469,14 +486,13 @@ function App() {
               filtrados.map(function (m) {
                 return (
                   <Tarjeta
-                    key={m.titulo}
+                    key={m.id}
                     titulo={m.titulo}
                     materia={m.materia}
                     anio={m.anio}
-                    tipoIcono={m.tipoIcono}
+                    tipo={m.tipo}
                     descripcion={m.descripcion}
                     autor={m.autor}
-                    avatar={m.avatar}
                   />
                 )
               })
